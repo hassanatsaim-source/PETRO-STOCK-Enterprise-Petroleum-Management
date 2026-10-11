@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PETRO-STOCK | South Sudan Petroleum Inventory & Distribution System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --petro-dark: #0b0f19;
+            --petro-card-dark: #151c2c;
+            --petro-border-dark: #232d42;
+            --petro-gold: #f59e0b;
+            --petro-gold-hover: #d97706;
+            --petro-blue: #0ea5e9;
+            --petro-green: #10b981;
+            --petro-red: #ef4444;
+        }
+
+        [data-bs-theme="light"] {
+            --petro-dark: #f8fafc;
+            --petro-card-dark: #ffffff;
+            --petro-border-dark: #e2e8f0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--petro-dark);
+            color: var(--bs-body-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        .font-mono {
+            font-family: var(--font-mono);
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 270px;
+            background-color: var(--petro-card-dark);
+            border-right: 1px solid var(--petro-border-dark);
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1040;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .main-wrapper {
+            margin-left: 270px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-wrapper {
+                margin-left: 0;
+                padding: 1rem;
+            }
+        }
+
+        /* Cards & Containers */
+        .card-custom {
+            background-color: var(--petro-card-dark);
+            border: 1px solid var(--petro-border-dark);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card-custom:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+
+        .stat-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        /* Nav Pills */
+        .nav-link-custom {
+            color: #94a3b8;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+        }
+
+        .nav-link-custom:hover {
+            color: #fff;
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+
+        .nav-link-custom.active {
+            color: #fff !important;
+            background-color: var(--petro-gold) !important;
+            font-weight: 600;
+        }
+
+        .badge-role {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        /* Tank Visual Progress Bars */
+        .tank-progress {
+            height: 14px;
+            border-radius: 7px;
+            background-color: rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+
+        /* Custom Toast Notification Container */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1090;
+        }
+
+        /* Print Area Formatting */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .printable-modal, .printable-modal * {
+                visibility: visible;
+            }
+            .printable-modal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        .waybill-stamp {
+            border: 2px dashed #dc2626;
+            color: #dc2626;
+            padding: 8px 16px;
+            border-radius: 8px;
+            display: inline-block;
+            font-weight: 800;
+            transform: rotate(-5deg);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <aside class="sidebar p-3 d-flex flex-column justify-content-between" id="sidebar">
+        <div>
+            <!-- Branding Header -->
+            <div class="d-flex align-items-center gap-3 px-2 py-3 mb-3 border-bottom border-secondary border-opacity-25">
+                <div class="bg-warning text-dark p-2 rounded-3 fw-bold fs-4 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                    <i class="fa-solid fa-oil-well"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0 tracking-wide">PETRO-STOCK</h5>
+                    <span class="text-warning font-mono" style="font-size: 0.65rem;">NILEPET / DPOC / GPOC</span>
+                </div>
+            </div>
+
+            <!-- Role Selector / RBAC Info -->
+            <div class="card-custom p-3 mb-3 bg-opacity-50">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small text-uppercase fw-bold" style="font-size:0.65rem;">Current Access Role</span>
+                    <i class="fa-solid fa-shield-halved text-warning small"></i>
+                </div>
+                <select id="rbacRoleSelect" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="switchUserRole(this.value)">
+                    <option value="Admin">System Administrator</option>
+                    <option value="Operations Director">Operations Director</option>
+                    <option value="Depot Store Manager">Depot Store Manager</option>
+                    <option value="Field Logistics Officer">Field Logistics Officer</option>
+                    <option value="Finance Auditor">Finance / Billing Auditor</option>
+                </select>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="nav flex-column nav-pills" id="mainTab" role="tablist">
+                <button class="nav-link-custom active" data-bs-toggle="pill" data-bs-target="#tab-dashboard" onclick="setModuleTitle('Executive Operations Dashboard')">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard & Analytics
+                </button>
+                <button class="nav-link-custom" data-bs-toggle="pill" data-bs-target="#tab-fields" onclick="setModuleTitle('Oil Fields Extraction Yield Module')">
+                    <i class="fa-solid fa-oil-well"></i> Crude Oil Fields
+                </button>
+                <button class="nav-link-custom" data-bs-toggle="pill" data-bs-target="#tab-tanks" onclick="setModuleTitle('Terminal Storage & Depot Tank Matrix')">
+                    <i class="fa-solid fa-warehouse"></i> Depot Tanks & Reserves
+                </button>
+                <button class="nav-link-custom" data-bs-toggle="pill" data-bs-target="#tab-logistics" onclick="setModuleTitle('Distribution & Truck Loading Logistics')">
+                    <i class="fa-solid fa-truck-fast"></i> Logistics & Waybills
+                </button>
+                <button class="nav-link-custom" data-bs-toggle="pill" data-bs-target="#tab-sales" onclick="setModuleTitle('Commercial Sales & Billing Ledger')">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Commercial Billing
+                </button>
+                <button class="nav-link-custom" data-bs-toggle="pill" data-bs-target="#tab-reports" onclick="setModuleTitle('Audit Logs & Executive Reporting Hub')">
+                    <i class="fa-solid fa-print"></i> Executive Audit Hub
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="pt-3 border-top border-secondary border-opacity-25">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white font-mono fw-bold" style="width:34px; height:34px;" id="userAvatar">
+                        SA
+                    </div>
+                    <div>
+                        <div class="fw-bold small text-truncate" style="max-width: 120px;" id="userNameDisplay">Eng. Deng Kuol</div>
+                        <span class="badge bg-warning text-dark badge-role" id="userBadgeDisplay">Admin</span>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main-wrapper">
+        <!-- Top Application Header -->
+        <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-secondary d-lg-none" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div>
+                    <h3 class="fw-bold m-0" id="currentModuleTitle">Executive Operations Dashboard</h3>
+                    <p class="text-muted small m-0">South Sudan National Petroleum Management & Telemetry Portal</p>
+                </div>
+            </div>
+
+            <!-- Currency & Status Controls -->
+            <div class="d-flex align-items-center gap-3">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle font-mono" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-coins me-1 text-warning"></i> Currency: <span id="activeCurrencyDisplay">USD ($)</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+                        <li><a class="dropdown-item" href="#" onclick="setCurrency('USD')">USD ($) - Benchmark Crude</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setCurrency('SSP')">SSP (South Sudanese Pound)</a></li>
+                    </ul>
+                </div>
+                <div class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill font-mono small d-none d-sm-inline-block">
+                    <i class="fa-solid fa-circle-dot fa-beat me-1"></i> Live Network: DB Sync Active
+                </div>
+            </div>
+        </header>
+
+        <div class="tab-content" id="mainTabContent">
+            
+            <!-- MODULE 1: EXECUTIVE DASHBOARD -->
+            <div class="tab-pane fade show active" id="tab-dashboard" role="tabpanel">
+                <!-- KPI Stat Cards Grid -->
+                <div class="row g-3 mb-4">
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card-custom p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="text-muted small text-uppercase fw-bold">MTD Field Extraction</span>
+                                    <h3 class="fw-bold m-0 mt-1 font-mono text-warning" id="kpiProduction">462,500 bbl</h3>
+                                </div>
+                                <div class="stat-icon-wrapper bg-warning bg-opacity-10 text-warning">
+                                    <i class="fa-solid fa-oil-well"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-between align-items-center small">
+                                <span class="text-success"><i class="fa-solid fa-arrow-trend-up me-1"></i>+6.2% vs Last Month</span>
+                                <span class="text-muted">6 Major Fields</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card-custom p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="text-muted small text-uppercase fw-bold">Central Depot Reserves</span>
+                                    <h3 class="fw-bold m-0 mt-1 font-mono text-info" id="kpiReserves">148,200 bbl</h3>
+                                </div>
+                                <div class="stat-icon-wrapper bg-info bg-opacity-10 text-info">
+                                    <i class="fa-solid fa-warehouse"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-between align-items-center small">
+                                <span class="text-muted">Capacity: 250,000 bbl</span>
+                                <span class="text-info fw-bold">59.2% Filled</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card-custom p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="text-muted small text-uppercase fw-bold">Active Waybill Fleet</span>
+                                    <h3 class="fw-bold m-0 mt-1 font-mono text-primary" id="kpiFleet">34 Trucks</h3>
+                                </div>
+                                <div class="stat-icon-wrapper bg-primary bg-opacity-10 text-primary">
+                                    <i class="fa-solid fa-truck-fast"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-between align-items-center small">
+                                <span class="text-success"><i class="fa-solid fa-circle me-1" style="font-size:0.6rem;"></i>En Route to Wau/Malakal</span>
+                                <span class="text-muted">Dispatch Normal</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card-custom p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="text-muted small text-uppercase fw-bold">MTD Billed Revenue</span>
+                                    <h3 class="fw-bold m-0 mt-1 font-mono text-success" id="kpiRevenue">$39,312,500</h3>
+                                </div>
+                                <div class="stat-icon-wrapper bg-success bg-opacity-10 text-success">
+                                    <i class="fa-solid fa-sack-dollar"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-between align-items-center small">
+                                <span class="text-muted">Avg Brent/Darte: $85/bbl</span>
+                                <span class="badge bg-success bg-opacity-10 text-success">Clearance 98%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Visual Charts Row -->
+                <div class="row g-3 mb-4">
+                    <div class="col-lg-8">
+                        <div class="card-custom p-4 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold m-0"><i class="fa-solid fa-chart-line text-warning me-2"></i>Daily Field Yield Production History (Barrels)</h6>
+                                <span class="badge bg-secondary font-mono">Paloch / Thar Jath / Unity</span>
+                            </div>
+                            <div style="height: 320px;">
+                                <canvas id="chartProduction"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="card-custom p-4 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold m-0"><i class="fa-solid fa-chart-pie text-info me-2"></i>Terminal Stock Distribution</h6>
+                            </div>
+                            <div style="height: 320px;" class="d-flex align-items-center justify-content-center">
+                                <canvas id="chartTanks"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Audit Log & Operational Alerts -->
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <div class="card-custom p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold m-0"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Real-Time System Operations & Telemetry Log</h6>
+                                <span class="badge bg-primary bg-opacity-10 text-primary">Live Events</span>
+                            </div>
+                            <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                                <table class="table table-dark table-hover table-sm small align-middle">
+                                    <thead class="text-muted font-mono">
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Operator</th>
+                                            <th>Module</th>
+                                            <th>Activity Details</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auditLogsBody">
+                                        <!-- Dynamically generated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-5">
+                        <div class="card-custom p-4">
+                            <h6 class="fw-bold mb-3"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>Depot Storage Telemetry Warnings</h6>
+                            <div id="tankAlertsContainer">
+                                <!-- Dynamic Tank Warnings -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE 2: OIL FIELD PRODUCTION -->
+            <div class="tab-pane fade" id="tab-fields" role="tabpanel">
+                <div class="row g-3 mb-4">
+                    <div class="col-lg-4">
+                        <div class="card-custom p-4">
+                            <h5 class="fw-bold text-warning mb-3"><i class="fa-solid fa-plus-circle me-2"></i>Log Daily Production Entry</h5>
+                            <form id="formFieldProduction" onsubmit="handleProductionSubmit(event)">
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted font-mono">OIL FIELD LOCATION</label>
+                                    <select class="form-select bg-dark text-white border-secondary" id="fieldSelect" required>
+                                        <option value="Paloch Field (Melut Basin)">Paloch Field (Melut Basin)</option>
+                                        <option value="Thar Jath (Muglad Basin)">Thar Jath (Muglad Basin)</option>
+                                        <option value="Unity Field (Unity State)">Unity Field (Unity State)</option>
+                                        <option value="Toma South Field">Toma South Field</option>
+                                        <option value="Block 3 & 7 Complex">Block 3 & 7 Complex</option>
+                                        <option value="Block 1, 2 & 4 Basin">Block 1, 2 & 4 Basin</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted font-mono">PRODUCTION VOLUME (BARRELS)</label>
+                                    <input type="number" class="form-control bg-dark text-white border-secondary" id="fieldBarrels" placeholder="e.g. 18500" required min="1">
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small text-muted font-mono">API GRAVITY (°)</label>
+                                        <input type="number" step="0.1" class="form-control bg-dark text-white border-secondary" id="fieldApi" value="34.2" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small text-muted font-mono">WATER CUT (%)</label>
+                                        <input type="number" step="0.1" class="form-control bg-dark text-white border-secondary" id="fieldWaterCut" value="4.8" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted font-mono">LOGGING DATE</label>
+                                    <input type="date" class="form-control bg-dark text-white border-secondary" id="fieldDate" required>
+                                </div>
+                                <button type="submit" class="btn btn-warning fw-bold w-100 py-2 rbac-write" id="btnLogProd">
+                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i> Commit Field Entry
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div class="card-custom p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold m-0"><i class="fa-solid fa-oil-well text-warning me-2"></i>Extraction Field Logs & Telemetry Ledger</h5>
+                                <div class="d-flex gap-2">
+                                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Search field..." id="searchFieldInput" onkeyup="filterProductionLogs()">
+                                    <button class="btn btn-sm btn-outline-warning" onclick="exportProductionCSV()"><i class="fa-solid fa-download me-1"></i> CSV</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle">
+                                    <thead class="text-muted font-mono border-bottom border-secondary">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Oil Field</th>
+                                            <th>Yield (bbl)</th>
+                                            <th>API Gravity</th>
+                                            <th>Water Cut</th>
+                                            <th>Officer</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="productionTableBody">
+                                        <!-- Dynamically generated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE 3: DEPOT STORAGE & TANKS -->
+            <div class="tab-pane fade" id="tab-tanks" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold m-0"><i class="fa-solid fa-warehouse text-info me-2"></i>Depot Storage Telemetry & Tank Matrix</h4>
+                        <p class="text-muted small m-0">Live stock levels across Juba Central, Wau Regional, Malakal, and Bentiu Hubs</p>
+                    </div>
+                    <button class="btn btn-primary fw-bold rbac-write" data-bs-toggle="modal" data-bs-target="#modalTransferStock">
+                        <i class="fa-solid fa-right-left me-1"></i> Inter-Tank Transfer
+                    </button>
+                </div>
+
+                <div class="row g-4" id="tanksGridContainer">
+                    <!-- Tank cards injected dynamically -->
+                </div>
+            </div>
+
+            <!-- MODULE 4: LOGISTICS & WAYBILLS -->
+            <div class="tab-pane fade" id="tab-logistics" role="tabpanel">
+                <div class="row g-3 mb-4">
+                    <div class="col-lg-5">
+                        <div class="card-custom p-4">
+                            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-truck-ramp-box me-2"></i>Issue Dispatch Waybill & Gate Pass</h5>
+                            <form id="formWaybill" onsubmit="handleWaybillSubmit(event)">
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted font-mono">TRUCK REGISTRATION NO.</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" id="wbTruck" placeholder="e.g. SSD-8902-A" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted font-mono">TRANSPORTER COMPANY</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" id="wbCompany" placeholder="e.g. Nile Logistics South Sudan" required>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small text-muted font-mono">DRIVER NAME</label>
+                                        <input type="text" class="form-control bg-dark text-white border-secondary" id="wbDriver" placeholder="Peter Lado" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small text-muted font-mono">DRIVER PERMIT ID</label>
+                                        <input type="text" class="form-control bg-dark text-white border-secondary" id="wbPermit" placeholder="DL-78219" required>
+                                    </div>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small text-muted font-mono">DISPATCH QTY (BARRELS)</label>
+                                        <input type="number" class="form-control bg-dark text-white border-secondary" id="wbQty" placeholder="500" required min="1">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small text-muted font-mono">DESTINATION TERMINAL</label>
+                                        <select class="form-select bg-dark text-white border-secondary" id="wbDestination" required>
+                                            <option value="Juba Central Depot">Juba Central Depot</option>
+                                            <option value="Wau Regional Terminal">Wau Regional Terminal</option>
+                                            <option value="Malakal Storage Terminal">Malakal Storage Terminal</option>
+                                            <option value="Bentiu Reserve Hub">Bentiu Reserve Hub</option>
+                                            <option value="Nimule Border Export Post">Nimule Border Export Post</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary fw-bold w-100 py-2 rbac-write">
+                                    <i class="fa-solid fa-file-signature me-1"></i> Issue Dispatch Waybill
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <div class="card-custom p-4">
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-check text-primary me-2"></i>Active Fleet Dispatch Ledger</h5>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle">
+                                    <thead class="text-muted font-mono">
+                                        <tr>
+                                            <th>Waybill ID</th>
+                                            <th>Truck No</th>
+                                            <th>Transporter</th>
+                                            <th>Qty (bbl)</th>
+                                            <th>Destination</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="waybillTableBody">
+                                        <!-- Dynamically generated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE 5: COMMERCIAL SALES & BILLING -->
+            <div class="tab-pane fade" id="tab-sales" role="tabpanel">
+                <div class="row g-3 mb-4">
+                    <div class="col-xl-4">
+                        <div class="card-custom p-4">
+                            <span class="text-muted small text-uppercase fw-bold">Commercial Revenue Realized</span>
+                            <h2 class="fw-bold font-mono text-success mt-2 mb-1" id="salesTotalRevenue">$39,312,500</h2>
+                            <p class="text-muted small mb-0">Dual FOREX Billing Engine active (USD / SSP)</p>
+                        </div>
+                    </div>
+                    <div class="col-xl-4">
+                        <div class="card-custom p-4">
+                            <span class="text-muted small text-uppercase fw-bold">Global Benchmark Price ($/bbl)</span>
+                            <div class="input-group mt-2">
+                                <span class="input-group-text bg-dark text-warning border-secondary">$</span>
+                                <input type="number" class="form-control bg-dark text-white border-secondary font-mono fw-bold" id="brentPriceInput" value="85" onchange="updateBenchmarkPrice(this.value)">
+                                <span class="input-group-text bg-dark text-muted border-secondary">USD / bbl</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-4">
+                        <div class="card-custom p-4">
+                            <span class="text-muted small text-uppercase fw-bold">Commercial Invoices Issued</span>
+                            <h2 class="fw-bold font-mono text-white mt-2 mb-1" id="salesInvoiceCount">8 Commercial Claims</h2>
+                            <p class="text-muted small mb-0">Linked to truck logistics gate clearance</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-custom p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold m-0"><i class="fa-solid fa-file-invoice-dollar text-success me-2"></i>Commercial Sales Ledger & Forex Clearance</h5>
+                        <button class="btn btn-sm btn-outline-success" onclick="exportSalesCSV()"><i class="fa-solid fa-file-excel me-1"></i> Export Ledger</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle">
+                            <thead class="text-muted font-mono">
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Waybill Ref</th>
+                                    <th>Buyer/Destination</th>
+                                    <th>Volume (bbl)</th>
+                                    <th>Unit Benchmark Price</th>
+                                    <th>Total Payable</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesTableBody">
+                                <!-- Dynamically generated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE 6: EXECUTIVE REPORTS & AUDIT -->
+            <div class="tab-pane fade" id="tab-reports" role="tabpanel">
+                <div class="card-custom p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h4 class="fw-bold m-0"><i class="fa-solid fa-shield-halved text-warning me-2"></i>Ministry & Board Operational Audit Hub</h4>
+                            <p class="text-muted small m-0">Generate verified management audit summaries for Nilepet & DPOC Directorates</p>
+                        </div>
+                        <button class="btn btn-warning fw-bold text-dark" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Print / Export Executive Report</button>
+                    </div>
+
+                    <!-- Printable Board Report Section -->
+                    <div class="bg-white text-dark p-5 rounded-3 shadow-sm printable-modal" id="printableReport">
+                        <div class="text-center border-bottom border-2 border-dark pb-4 mb-4">
+                            <h2 class="fw-extrabold m-0 tracking-wide text-uppercase" style="letter-spacing:1px;">Nile Petroleum Corporation (NILEPET)</h2>
+                            <h5 class="text-secondary fw-bold mt-1">Joint Operations Directorate — DPOC & GPOC Telemetry Audit</h5>
+                            <p class="text-muted small m-0 font-mono">Report Ref: AUD-2026-NP-0941 | Date Generated: <span id="reportGeneratedDate"></span></p>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-6">
+                                <h6 class="fw-bold text-uppercase border-bottom pb-1">1. Field Extraction Totals</h6>
+                                <p class="small text-secondary mb-1">MTD Extraction Yield: <strong class="text-dark font-mono" id="repFieldProd">462,500 Barrels</strong></p>
+                                <p class="small text-secondary mb-1">Active Well Basins: <strong class="text-dark">Melut Basin, Muglad Basin, Unity State</strong></p>
+                                <p class="small text-secondary mb-0">Compliance Rating: <strong class="text-success">99.4% Flow Rate Normal</strong></p>
+                            </div>
+                            <div class="col-6">
+                                <h6 class="fw-bold text-uppercase border-bottom pb-1">2. Financial Realization Summary</h6>
+                                <p class="small text-secondary mb-1">Total Commercial Invoiced: <strong class="text-dark font-mono" id="repFinancials">$39,312,500 USD</strong></p>
+                                <p class="small text-secondary mb-1">Dual Exchange Rate Applied: <strong class="text-dark">1 USD = 2,950 SSP</strong></p>
+                                <p class="small text-secondary mb-0">Shrinkage Loss Metric: <strong class="text-success">&lt; 0.02% (Optimal)</strong></p>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-uppercase border-bottom pb-2 mb-3">3. Terminal Storage Depot Inventory Status</h6>
+                        <table class="table table-bordered table-sm small align-middle mb-4">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Depot Terminal</th>
+                                    <th>Tank Name</th>
+                                    <th>Design Capacity (bbl)</th>
+                                    <th>Current Reserves (bbl)</th>
+                                    <th>Reserve %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTanksBody">
+                                <!-- Generated JS -->
+                            </tbody>
+                        </table>
+
+                        <div class="row mt-5 pt-4 border-top border-dark text-center">
+                            <div class="col-4">
+                                <p class="small fw-bold m-0">Eng. Deng Kuol</p>
+                                <span class="text-muted small">Operations Telemetry Lead</span>
+                            </div>
+                            <div class="col-4">
+                                <p class="small fw-bold m-0">Hon. Director General</p>
+                                <span class="text-muted small">Downstream Regulatory Division</span>
+                            </div>
+                            <div class="col-4">
+                                <div class="waybill-stamp">NILEPET VERIFIED</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 1: OFFICIAL WAYBILL PRINT -->
+    <div class="modal fade" id="modalWaybillPrint" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary no-print">
+                    <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-file-invoice me-2"></i>Official Nilepet Waybill Dispatch Receipt</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="bg-white text-dark p-4 rounded-3 printable-modal" id="waybillPrintCard">
+                        <div class="d-flex justify-content-between align-items-start border-bottom border-2 border-dark pb-3 mb-3">
+                            <div>
+                                <h3 class="fw-extrabold m-0 text-uppercase">Nile Petroleum Corporation</h3>
+                                <p class="text-muted small m-0 fw-bold">Downstream Operations Gate Pass & Dispatch Certificate</p>
+                            </div>
+                            <div class="text-end">
+                                <h5 class="fw-bold text-danger font-mono m-0" id="wbModalId">WB-2026-901</h5>
+                                <span class="text-muted small font-mono" id="wbModalDate">Date: 2026-10-11</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3 small">
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Truck Reg No:</strong> <span id="wbModalTruck">SSD-8902-A</span></p>
+                                <p class="mb-1"><strong>Transporter:</strong> <span id="wbModalCompany">Nile Logistics SS</span></p>
+                                <p class="mb-1"><strong>Driver Name:</strong> <span id="wbModalDriver">Peter Lado</span></p>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Driver License Permit:</strong> <span id="wbModalPermit">DL-78219</span></p>
+                                <p class="mb-1"><strong>Destination Terminal:</strong> <span id="wbModalDest">Juba Central Depot</span></p>
+                                <p class="mb-1"><strong>Dispatcher Signature:</strong> Eng. Deng Kuol</p>
+                            </div>
+                        </div>
+
+                        <table class="table table-bordered table-sm small mb-4">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Petroleum Grade Item</th>
+                                    <th>Loaded Volume (bbl)</th>
+                                    <th>Est. Unit Value</th>
+                                    <th>Total Consignment Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Darte Blend Crude Oil (Downstream Cargo)</td>
+                                    <td class="font-mono" id="wbModalQty">500 bbl</td>
+                                    <td class="font-mono" id="wbModalPrice">$85.00</td>
+                                    <td class="font-mono fw-bold" id="wbModalTotal">$42,500.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="d-flex justify-content-between align-items-end pt-3 border-top border-secondary">
+                            <div>
+                                <!-- Placeholder for QR code preview -->
+                                <div class="bg-light border border-secondary p-2 rounded text-center font-mono" style="width: 80px; height: 80px; font-size: 0.6rem;">
+                                    <i class="fa-solid fa-qrcode fs-2 text-dark"></i><br>SEAL-OK
+                                </div>
+                            </div>
+                            <div class="waybill-stamp">DISPATCH AUTHORIZED</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary no-print">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary fw-bold" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Print Official Pass</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: TANK STOCK TRANSFER -->
+    <div class="modal fade" id="modalTransferStock" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold text-info"><i class="fa-solid fa-right-left me-2"></i>Inter-Tank Stock Transfer</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formTransfer" onsubmit="handleTransferSubmit(event)">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted font-mono">SOURCE TANK</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="transferSource" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted font-mono">DESTINATION TANK</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="transferDest" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted font-mono">TRANSFER VOLUME (BARRELS)</label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary" id="transferQty" placeholder="e.g. 5000" required min="1">
+                        </div>
+                        <button type="submit" class="btn btn-info fw-bold text-dark w-100">Execute Telemetry Transfer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // System Application State with LocalStorage Persistence
+        const DEFAULT_STATE = {
+            role: 'Admin',
+            currency: 'USD',
+            exchangeRate: 2950, // 1 USD = 2950 SSP
+            brentPrice: 85,
+            productionLogs: [
+                { id: 1, date: '2026-10-11', field: 'Paloch Field (Melut Basin)', barrels: 18500, api: 34.2, waterCut: 4.5, officer: 'Eng. James Kuol' },
+                { id: 2, date: '2026-10-10', field: 'Thar Jath (Muglad Basin)', barrels: 12000, api: 32.1, waterCut: 5.2, officer: 'Achol Deng' },
+                { id: 3, date: '2026-10-09', field: 'Unity Field (Unity State)', barrels: 15400, api: 35.0, waterCut: 3.8, officer: 'Bol Machar' }
+            ],
+            tanks: [
+                { id: 'T-JUBA-01', name: 'Tank A-01', depot: 'Juba Central Depot', capacity: 60000, stock: 48500, temp: '28°C', density: '0.85 g/cm³' },
+                { id: 'T-JUBA-02', name: 'Tank A-02', depot: 'Juba Central Depot', capacity: 60000, stock: 11200, temp: '29°C', density: '0.86 g/cm³' },
+                { id: 'T-WAU-01', name: 'Tank B-01', depot: 'Wau Regional Terminal', capacity: 45000, stock: 38000, temp: '31°C', density: '0.84 g/cm³' },
+                { id: 'T-WAU-02', name: 'Tank B-02', depot: 'Wau Regional Terminal', capacity: 45000, stock: 7500, temp: '30°C', density: '0.85 g/cm³' },
+                { id: 'T-MAL-01', name: 'Tank C-01', depot: 'Malakal Storage Terminal', capacity: 40000, stock: 32000, temp: '27°C', density: '0.85 g/cm³' },
+                { id: 'T-BEN-01', name: 'Tank D-01', depot: 'Bentiu Reserve Hub', capacity: 35000, stock: 11000, temp: '32°C', density: '0.86 g/cm³' }
+            ],
+            waybills: [
+                { id: 'WB-2026-901', truck: 'SSD-8902-A', company: 'Nile Logistics SS', driver: 'Peter Lado', permit: 'DL-78219', qty: 500, dest: 'Juba Central Depot', date: '2026-10-11' },
+                { id: 'WB-2026-902', truck: 'SSD-4102-B', company: 'Trans-South Transport', driver: 'John Deng', permit: 'DL-99012', qty: 750, dest: 'Wau Regional Terminal', date: '2026-10-10' }
+            ],
+            auditLogs: [
+                { time: '18:04:12', user: 'Eng. Deng Kuol', module: 'Logistics', detail: 'Issued Waybill WB-2026-901 to Juba Depot', status: 'Success' },
+                { time: '16:30:00', user: 'Eng. James Kuol', module: 'Production', detail: 'Logged 18,500 bbl yield for Paloch Field', status: 'Verified' },
+                { time: '14:15:22', user: 'Depot Manager', module: 'Storage', detail: 'Low reserve warning triggered for Tank B-02', status: 'Warning' }
+            ]
+        };
+
+        // Load or initialize state
+        let state = JSON.parse(localStorage.getItem('PETRO_STOCK_STATE')) || DEFAULT_STATE;
+
+        function saveState() {
+            localStorage.setItem('PETRO_STOCK_STATE', JSON.stringify(state));
+        }
+
+        let chartProdInstance = null;
+        let chartTanksInstance = null;
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('fieldDate').valueAsDate = new Date();
+            document.getElementById('reportGeneratedDate').innerText = new Date().toISOString().split('T')[0];
+
+            applyRBACPermissions();
+            renderAllModules();
+            initCharts();
+        });
+
+        function renderAllModules() {
+            renderDashboardKPIs();
+            renderAuditLogs();
+            renderProductionTable();
+            renderTanksMatrix();
+            renderWaybillsTable();
+            renderSalesTable();
+            populateTransferDropdowns();
+        }
+
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'warning' ? 'warning text-dark' : 'danger'} border-0 show mb-2`;
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body fw-bold">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            toastContainer.appendChild(toastEl);
+            setTimeout(() => toastEl.remove(), 4000);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+        }
+
+        function toggleTheme() {
+            const htmlEl = document.documentElement;
+            const currentTheme = htmlEl.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            htmlEl.setAttribute('data-bs-theme', newTheme);
+            document.getElementById('themeIcon').className = newTheme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        }
+
+        function setModuleTitle(title) {
+            document.getElementById('currentModuleTitle').innerText = title;
+        }
+
+        function setCurrency(curr) {
+            state.currency = curr;
+            document.getElementById('activeCurrencyDisplay').innerText = curr === 'USD' ? 'USD ($)' : 'SSP (SSP)';
+            saveState();
+            renderDashboardKPIs();
+            renderSalesTable();
+            showToast(`Currency toggled to ${curr}`);
+        }
+
+        function updateBenchmarkPrice(val) {
+            state.brentPrice = parseFloat(val) || 85;
+            saveState();
+            renderDashboardKPIs();
+            renderSalesTable();
+            showToast(`Benchmark Crude Price updated to $${state.brentPrice}/bbl`);
+        }
+
+        function switchUserRole(role) {
+            state.role = role;
+            saveState();
+            applyRBACPermissions();
+            showToast(`Active system role switched to: ${role}`, 'warning');
+        }
+
+        function applyRBACPermissions() {
+            const role = state.role;
+            document.getElementById('userBadgeDisplay').innerText = role;
+            
+            // Handle write permissions
+            const writeButtons = document.querySelectorAll('.rbac-write');
+            if (role === 'Finance Auditor') {
+                writeButtons.forEach(btn => btn.setAttribute('disabled', 'true'));
+            } else {
+                writeButtons.forEach(btn => btn.removeAttribute('disabled'));
+            }
+        }
+
+        function renderDashboardKPIs() {
+            const totalProd = state.productionLogs.reduce((acc, curr) => acc + curr.barrels, 416600);
+            const totalStock = state.tanks.reduce((acc, curr) => acc + curr.stock, 0);
+            const totalRevenueUSD = state.waybills.reduce((acc, curr) => acc + (curr.qty * state.brentPrice), 39000000);
+            
+            document.getElementById('kpiProduction').innerText = `${totalProd.toLocaleString()} bbl`;
+            document.getElementById('kpiReserves').innerText = `${totalStock.toLocaleString()} bbl`;
+            document.getElementById('kpiFleet').innerText = `${state.waybills.length + 32} Trucks`;
+
+            if(state.currency === 'USD') {
+                document.getElementById('kpiRevenue').innerText = `$${totalRevenueUSD.toLocaleString()}`;
+                document.getElementById('salesTotalRevenue').innerText = `$${totalRevenueUSD.toLocaleString()}`;
+            } else {
+                const totalSSP = totalRevenueUSD * state.exchangeRate;
+                document.getElementById('kpiRevenue').innerText = `SSP ${(totalSSP / 1000000).toFixed(1)}M`;
+                document.getElementById('salesTotalRevenue').innerText = `SSP ${totalSSP.toLocaleString()}`;
+            }
+
+            document.getElementById('repFieldProd').innerText = `${totalProd.toLocaleString()} Barrels`;
+            document.getElementById('repFinancials').innerText = `$${totalRevenueUSD.toLocaleString()} USD`;
+        }
+
+        function renderAuditLogs() {
+            const tbody = document.getElementById('auditLogsBody');
+            tbody.innerHTML = state.auditLogs.map(log => `
+                <tr>
+                    <td class="font-mono">${log.time}</td>
+                    <td class="fw-bold">${log.user}</td>
+                    <td><span class="badge bg-secondary">${log.module}</span></td>
+                    <td>${log.detail}</td>
+                    <td><span class="badge ${log.status === 'Warning' ? 'bg-danger' : 'bg-success'}">${log.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function handleProductionSubmit(e) {
+            e.preventDefault();
+            const field = document.getElementById('fieldSelect').value;
+            const barrels = parseInt(document.getElementById('fieldBarrels').value);
+            const api = parseFloat(document.getElementById('fieldApi').value);
+            const waterCut = parseFloat(document.getElementById('fieldWaterCut').value);
+            const date = document.getElementById('fieldDate').value;
+
+            const newLog = {
+                id: state.productionLogs.length + 1,
+                date,
+                field,
+                barrels,
+                api,
+                waterCut,
+                officer: state.role === 'Admin' ? 'Eng. Deng Kuol' : 'Field Officer'
+            };
+
+            state.productionLogs.unshift(newLog);
+            state.auditLogs.unshift({
+                time: new Date().toLocaleTimeString(),
+                user: newLog.officer,
+                module: 'Production',
+                detail: `Logged ${barrels.toLocaleString()} bbl yield for ${field}`,
+                status: 'Verified'
+            });
+
+            saveState();
+            renderAllModules();
+            updateProdChart();
+            showToast('Production entry recorded successfully!');
+            document.getElementById('formFieldProduction').reset();
+            document.getElementById('fieldDate').valueAsDate = new Date();
+        }
+
+        function renderProductionTable() {
+            const tbody = document.getElementById('productionTableBody');
+            tbody.innerHTML = state.productionLogs.map(p => `
+                <tr>
+                    <td class="font-mono">${p.date}</td>
+                    <td class="fw-bold text-warning">${p.field}</td>
+                    <td class="font-mono fw-bold">${p.barrels.toLocaleString()} bbl</td>
+                    <td>${p.api}° API</td>
+                    <td>${p.waterCut}%</td>
+                    <td>${p.officer}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterProductionLogs() {
+            const query = document.getElementById('searchFieldInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#productionTableBody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function exportProductionCSV() {
+            let csv = 'Date,Oil Field,Yield Barrels,API Gravity,Water Cut,Officer\n';
+            state.productionLogs.forEach(p => {
+                csv += `${p.date},"${p.field}",${p.barrels},${p.api},${p.waterCut},${p.officer}\n`;
+            });
+            downloadCSV(csv, 'nilepet_production_logs.csv');
+        }
+
+        function renderTanksMatrix() {
+            const container = document.getElementById('tanksGridContainer');
+            const alertsContainer = document.getElementById('tankAlertsContainer');
+            
+            container.innerHTML = '';
+            alertsContainer.innerHTML = '';
+
+            let warningsCount = 0;
+
+            state.tanks.forEach(tank => {
+                const percentage = Math.round((tank.stock / tank.capacity) * 100);
+                const ullage = tank.capacity - tank.stock;
+                let badgeBg = 'bg-success';
+                let alertText = null;
+
+                if (percentage < 20) {
+                    badgeBg = 'bg-danger';
+                    alertText = `CRITICAL LOW STOCK: ${tank.name} (${tank.depot}) is at ${percentage}% capacity!`;
+                    warningsCount++;
+                } else if (percentage > 90) {
+                    badgeBg = 'bg-warning text-dark';
+                    alertText = `OVERFLOW ALERT: ${tank.name} (${tank.depot}) is at ${percentage}% capacity!`;
+                    warningsCount++;
+                }
+
+                if(alertText) {
+                    alertsContainer.innerHTML += `
+                        <div class="alert ${percentage < 20 ? 'alert-danger bg-danger bg-opacity-10 border-danger' : 'alert-warning bg-warning bg-opacity-10 border-warning'} small mb-2">
+                            <i class="fa-solid fa-bell me-1"></i> ${alertText}
+                        </div>
+                    `;
+                }
+
+                container.innerHTML += `
+                    <div class="col-xl-4 col-md-6">
+                        <div class="card-custom p-4 h-100">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h5 class="fw-bold m-0">${tank.name}</h5>
+                                    <span class="text-muted small"><i class="fa-solid fa-location-dot me-1 text-primary"></i>${tank.depot}</span>
+                                </div>
+                                <span class="badge ${badgeBg} font-mono">${percentage}% Filled</span>
+                            </div>
+                            
+                            <div class="tank-progress my-3">
+                                <div class="progress-bar ${percentage < 20 ? 'bg-danger' : percentage > 90 ? 'bg-warning' : 'bg-info'}" style="width: ${percentage}%"></div>
+                            </div>
+
+                            <div class="row g-2 font-mono small text-muted mb-3">
+                                <div class="col-6">Current: <strong class="text-white">${tank.stock.toLocaleString()} bbl</strong></div>
+                                <div class="col-6">Ullage: <strong class="text-white">${ullage.toLocaleString()} bbl</strong></div>
+                                <div class="col-6">Temp: <span class="text-white">${tank.temp}</span></div>
+                                <div class="col-6">Density: <span class="text-white">${tank.density}</span></div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-info w-50 rbac-write" onclick="adjustTankLevel('${tank.id}', 2000)">+ Fill 2k</button>
+                                <button class="btn btn-sm btn-outline-warning w-50 rbac-write" onclick="adjustTankLevel('${tank.id}', -2000)">- Draw 2k</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if(warningsCount === 0) {
+                alertsContainer.innerHTML = `<p class="text-success small m-0"><i class="fa-solid fa-circle-check me-1"></i> All storage depots operating within normal parameters.</p>`;
+            }
+
+            // Also render report table
+            const repBody = document.getElementById('reportTanksBody');
+            if(repBody) {
+                repBody.innerHTML = state.tanks.map(t => `
+                    <tr>
+                        <td>${t.depot}</td>
+                        <td class="fw-bold">${t.name}</td>
+                        <td class="font-mono">${t.capacity.toLocaleString()}</td>
+                        <td class="font-mono fw-bold">${t.stock.toLocaleString()}</td>
+                        <td class="font-mono">${Math.round((t.stock/t.capacity)*100)}%</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function adjustTankLevel(tankId, delta) {
+            const tank = state.tanks.find(t => t.id === tankId);
+            if(tank) {
+                tank.stock += delta;
+                if(tank.stock < 0) tank.stock = 0;
+                if(tank.stock > tank.capacity) tank.stock = tank.capacity;
+                saveState();
+                renderAllModules();
+                updateTankChart();
+                showToast(`Adjusted ${tank.name} stock level by ${delta} barrels.`);
+            }
+        }
+
+        function populateTransferDropdowns() {
+            const src = document.getElementById('transferSource');
+            const dest = document.getElementById('transferDest');
+            if(!src || !dest) return;
+
+            const options = state.tanks.map(t => `<option value="${t.id}">${t.name} - ${t.depot} (${t.stock.toLocaleString()} bbl)</option>`).join('');
+            src.innerHTML = options;
+            dest.innerHTML = options;
+        }
+
+        function handleTransferSubmit(e) {
+            e.preventDefault();
+            const srcId = document.getElementById('transferSource').value;
+            const destId = document.getElementById('transferDest').value;
+            const qty = parseInt(document.getElementById('transferQty').value);
+
+            if(srcId === destId) {
+                showToast('Source and Destination tanks cannot be identical!', 'warning');
+                return;
+            }
+
+            const srcTank = state.tanks.find(t => t.id === srcId);
+            const destTank = state.tanks.find(t => t.id === destId);
+
+            if(srcTank.stock < qty) {
+                showToast('Insufficient source tank stock!', 'danger');
+                return;
+            }
+
+            srcTank.stock -= qty;
+            destTank.stock += qty;
+
+            state.auditLogs.unshift({
+                time: new Date().toLocaleTimeString(),
+                user: state.role,
+                module: 'Storage',
+                detail: `Transferred ${qty.toLocaleString()} bbl from ${srcTank.name} to ${destTank.name}`,
+                status: 'Success'
+            });
+
+            saveState();
+            renderAllModules();
+            updateTankChart();
+            bootstrap.Modal.getInstance(document.getElementById('modalTransferStock')).hide();
+            showToast(`Inter-tank transfer of ${qty.toLocaleString()} bbl executed.`);
+        }
+
+        function handleWaybillSubmit(e) {
+            e.preventDefault();
+            const truck = document.getElementById('wbTruck').value;
+            const company = document.getElementById('wbCompany').value;
+            const driver = document.getElementById('wbDriver').value;
+            const permit = document.getElementById('wbPermit').value;
+            const qty = parseInt(document.getElementById('wbQty').value);
+            const dest = document.getElementById('wbDestination').value;
+            const wbId = 'WB-2026-' + Math.floor(100 + Math.random() * 900);
+            const date = new Date().toISOString().split('T')[0];
+
+            const newWaybill = { id: wbId, truck, company, driver, permit, qty, dest, date };
+            state.waybills.unshift(newWaybill);
+
+            state.auditLogs.unshift({
+                time: new Date().toLocaleTimeString(),
+                user: state.role,
+                module: 'Logistics',
+                detail: `Dispatched ${wbId} (${qty} bbl) to ${dest}`,
+                status: 'Success'
+            });
+
+            saveState();
+            renderAllModules();
+            document.getElementById('formWaybill').reset();
+            openWaybillModal(wbId);
+        }
+
+        function renderWaybillsTable() {
+            const tbody = document.getElementById('waybillTableBody');
+            tbody.innerHTML = state.waybills.map(w => `
+                <tr>
+                    <td class="font-mono text-primary fw-bold">${w.id}</td>
+                    <td class="font-mono">${w.truck}</td>
+                    <td>${w.company}</td>
+                    <td class="font-mono fw-bold">${w.qty.toLocaleString()} bbl</td>
+                    <td>${w.dest}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="openWaybillModal('${w.id}')">
+                            <i class="fa-solid fa-print me-1"></i> Pass
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openWaybillModal(wbId) {
+            const wb = state.waybills.find(w => w.id === wbId);
+            if(wb) {
+                document.getElementById('wbModalId').innerText = wb.id;
+                document.getElementById('wbModalDate').innerText = `Date: ${wb.date}`;
+                document.getElementById('wbModalTruck').innerText = wb.truck;
+                document.getElementById('wbModalCompany').innerText = wb.company;
+                document.getElementById('wbModalDriver').innerText = wb.driver;
+                document.getElementById('wbModalPermit').innerText = wb.permit;
+                document.getElementById('wbModalDest').innerText = wb.dest;
+                document.getElementById('wbModalQty').innerText = `${wb.qty.toLocaleString()} bbl`;
+                document.getElementById('wbModalPrice').innerText = `$${state.brentPrice}.00`;
+                document.getElementById('wbModalTotal').innerText = `$${(wb.qty * state.brentPrice).toLocaleString()}.00`;
+
+                const modal = new bootstrap.Modal(document.getElementById('modalWaybillPrint'));
+                modal.show();
+            }
+        }
+
+        function renderSalesTable() {
+            const tbody = document.getElementById('salesTableBody');
+            let count = 0;
+            tbody.innerHTML = state.waybills.map(w => {
+                count++;
+                const invId = `INV-2026-${100 + count}`;
+                const totalUSD = w.qty * state.brentPrice;
+                const totalDisplay = state.currency === 'USD' ? `$${totalUSD.toLocaleString()}` : `SSP ${(totalUSD * state.exchangeRate).toLocaleString()}`;
+                const unitDisplay = state.currency === 'USD' ? `$${state.brentPrice}` : `SSP ${(state.brentPrice * state.exchangeRate).toLocaleString()}`;
+
+                return `
+                    <tr>
+                        <td class="font-mono text-success fw-bold">${invId}</td>
+                        <td class="font-mono">${w.id}</td>
+                        <td>${w.dest}</td>
+                        <td class="font-mono">${w.qty.toLocaleString()} bbl</td>
+                        <td class="font-mono">${unitDisplay}</td>
+                        <td class="font-mono fw-bold text-white">${totalDisplay}</td>
+                        <td><span class="badge bg-success bg-opacity-10 text-success">Cleared</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('salesInvoiceCount').innerText = `${state.waybills.length} Commercial Invoices`;
+        }
+
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', filename);
+            a.click();
+        }
+
+        function exportSalesCSV() {
+            let csv = 'Invoice Ref,Waybill Ref,Destination,Volume Barrels,Unit Benchmark,Total Value\n';
+            state.waybills.forEach((w, idx) => {
+                csv += `INV-2026-${100+idx},${w.id},"${w.dest}",${w.qty},${state.brentPrice},${w.qty * state.brentPrice}\n`;
+            });
+            downloadCSV(csv, 'nilepet_commercial_sales.csv');
+        }
+
+        function initCharts() {
+            // Production Chart
+            const ctxProd = document.getElementById('chartProduction').getContext('2d');
+            chartProdInstance = new Chart(ctxProd, {
+                type: 'line',
+                data: {
+                    labels: ['Oct 05', 'Oct 06', 'Oct 07', 'Oct 08', 'Oct 09', 'Oct 10', 'Oct 11'],
+                    datasets: [
+                        {
+                            label: 'Paloch Field',
+                            data: [18000, 18200, 18100, 18400, 18300, 18500, 18500],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Thar Jath',
+                            data: [11500, 11800, 11900, 12000, 12100, 12000, 12200],
+                            borderColor: '#0ea5e9',
+                            backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        x: { grid: { color: '#232d42' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: '#232d42' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            // Tank Doughnut Chart
+            const ctxTanks = document.getElementById('chartTanks').getContext('2d');
+            chartTanksInstance = new Chart(ctxTanks, {
+                type: 'doughnut',
+                data: {
+                    labels: state.tanks.map(t => t.name),
+                    datasets: [{
+                        data: state.tanks.map(t => t.stock),
+                        backgroundColor: ['#f59e0b', '#0ea5e9', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 10 } } }
+                }
+            });
+        }
+
+        function updateProdChart() {
+            if(chartProdInstance) {
+                chartProdInstance.update();
+            }
+        }
+
+        function updateTankChart() {
+            if(chartTanksInstance) {
+                chartTanksInstance.data.labels = state.tanks.map(t => t.name);
+                chartTanksInstance.data.datasets[0].data = state.tanks.map(t => t.stock);
+                chartTanksInstance.update();
+            }
+        }
+    </script>
+</body>
+</html>
